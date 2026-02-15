@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能抽题 · 自定义范围</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+        }
+        body {
+            background: #f3f6fc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 20px;
+        }
+        .app-container {
+            max-width: 1000px;
+            width: 100%;
+            background: white;
+            border-radius: 32px;
+            box-shadow: 0 20px 40px rgba(0,20,50,0.15);
+            overflow: hidden;
+            padding: 24px;
+        }
+        .panel {
+            display: none;
+        }
+        .panel.active {
+            display: block;
+        }
+        h2 {
+            margin: 0 0 12px 0;
+            font-weight: 600;
+            font-size: 1.5rem;
+            color: #0b2b4a;
+            border-left: 7px solid #3b82f6;
+            padding-left: 16px;
+        }
+        .info-bar {
+            background: #e6f0ff;
+            border-radius: 30px;
+            padding: 12px 22px;
+            margin: 20px 0 16px 0;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            font-weight: 500;
+            color: #004080;
+            border: 1px solid #b8d3ff;
+        }
+        .info-bar span {
+            background: white;
+            padding: 5px 18px;
+            border-radius: 50px;
+            font-size: 0.95rem;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+        }
+        .question-block, .answer-block {
+            background: #f9faff;
+            border-radius: 24px;
+            padding: 20px 24px;
+            margin-bottom: 20px;
+            border: 1px solid #dde7f5;
+        }
+        .label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #4b5f7a;
+            margin-bottom: 8px;
+        }
+        .question-text {
+            font-size: 1.25rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: #0b2b4a;
+            font-weight: 500;
+        }
+        .answer-text {
+            font-size: 1.2rem;
+            color: #1d4a8b;
+            background: #e9f2ff;
+            padding: 14px 18px;
+            border-radius: 20px;
+            min-height: 4rem;
+            border: 1px solid #c2dafc;
+            white-space: pre-wrap;
+        }
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 18px 0 12px;
+        }
+        button {
+            background: white;
+            border: 1.5px solid #c2d6f0;
+            padding: 10px 22px;
+            border-radius: 60px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #1e3e6e;
+            cursor: pointer;
+            transition: 0.15s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            flex: 0 1 auto;
+        }
+        button.primary {
+            background: #1f4f9e;
+            border-color: #1f4f9e;
+            color: white;
+        }
+        button.warning {
+            background: #feebc0;
+            border-color: #f3b33d;
+            color: #7a4c0d;
+        }
+        button.accent {
+            background: #ddedff;
+            border-color: #6d9eec;
+        }
+        button:hover {
+            background: #e3efff;
+            border-color: #3b82f6;
+            transform: translateY(-1px);
+        }
+        button.primary:hover {
+            background: #0f3d7a;
+        }
+        .range-selector {
+            background: #eaf2ff;
+            border-radius: 28px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+        .file-input-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+        input[type="text"], input[type="number"] {
+            padding: 12px 18px;
+            border: 2px solid #cbdaf0;
+            border-radius: 40px;
+            font-size: 0.95rem;
+            background: white;
+        }
+        .range-inputs {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin: 15px 0 10px;
+        }
+        .range-inputs label {
+            font-weight: 500;
+            color: #1e3e6e;
+        }
+        .range-inputs input {
+            width: 90px;
+            text-align: center;
+        }
+        .small-note {
+            color: #4d627c;
+            font-size: 0.9rem;
+            margin: 5px 0 0 2px;
+        }
+        hr {
+            border: 1px solid #d1dff5;
+            margin: 24px 0;
+        }
+    </style>
+</head>
+<body>
+<div class="app-container" id="appContainer">
+
+    <!-- 主界面 panel -->
+    <div id="mainPanel" class="panel active">
+        <h2>📚 主界面</h2>
+        <div class="button-group">
+            <button class="primary" id="gotoDrawRangeBtn">开始抽取题目</button>
+            <button class="accent" id="gotoMistakePanelBtn">错题本</button>
+            <button id="reloadLibraryBtn">重新加载题库</button>
+        </div>
+        <div class="file-input-row">
+            <input type="text" id="libraryUrlInput" placeholder="在此粘贴题库链接" value="https://gist.githubusercontent.com/y89654/b5786f5ed0e4290070a08b5010db7854/raw/file.txt">
+            <button id="loadUrlBtn">加载</button>
+        </div>
+        <div class="small-note" id="mainStatus">📖 题库状态：未加载 / 0题</div>
+    </div>
+
+    <!-- 抽取界面 / 答题界面 (包含范围选择与抽题) -->
+    <div id="drawPanel" class="panel">
+        <div id="rangeSelectorView" style="display: block;">
+            <h2>🎯 选择抽取范围</h2>
+            <div class="range-selector">
+                <div style="margin-bottom: 12px; font-weight: 500;">当前题库共 <span id="totalCountRange">0</span> 题</div>
+                
+                <!-- 新增：自定义范围输入 -->
+                <div class="range-inputs">
+                    <label>从第</label>
+                    <input type="number" id="rangeStart" min="1" value="1">
+                    <label>题 到第</label>
+                    <input type="number" id="rangeEnd" min="1" value="0">
+                    <label>题 (包含)</label>
+                </div>
+                <div class="button-group">
+                    <button id="startRangeDrawBtn" class="primary">开始抽取</button>
+                    <button id="backToMainFromRangeBtn">返回主界面</button>
+                </div>
+                <p class="small-note">📌 默认全部题目。输入范围后点击“开始抽取”即从该区间随机抽题。</p>
+            </div>
+        </div>
+
+        <div id="drawQuestionView" style="display: none;">
+            <div class="info-bar">
+                <span>📌 当前范围剩余 <span id="remainCounter">0</span> 题</span>
+                <span>📋 题库总题 <span id="totalIndicator">0</span></span>
+            </div>
+
+            <div class="question-block">
+                <div class="label">📝 题目栏</div>
+                <div class="question-text" id="questionDisplay">（点击抽取后显示题目）</div>
+            </div>
+
+            <div class="answer-block">
+                <div class="label">🔍 答案栏  <span style="margin-left: 16px; font-weight: normal;" id="answerHiddenTip">（隐藏）</span></div>
+                <div class="answer-text" id="answerDisplay">********</div>
+            </div>
+
+            <div class="button-group">
+                <button id="showAnswerBtn" class="primary">显示答案</button>
+                <button id="prevQuestionBtn">上一题</button>
+                <button id="nextQuestionBtn">下一题</button>
+                <button id="resetDrawnBtn">重置已抽取</button>
+                <button id="reselectRangeBtn">重新选择范围</button>
+                <button id="addToMistakeBtn" class="warning">加入错题本</button>
+                <button id="backToMainFromDrawBtn">返回主界面</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 错题本 panel (保持不变，功能正常) -->
+    <div id="mistakePanel" class="panel">
+        <h2>❌ 错题本</h2>
+        <div class="info-bar">
+            <span>错题总数 <span id="mistakeTotal">0</span></span>
+        </div>
+        <div class="button-group">
+            <button class="primary" id="startMistakeDrawBtn">开始抽取错题</button>
+            <button id="viewAllMistakesBtn">查看所有错题</button>
+            <button id="resetMistakeDrawnBtn">重置已抽取错题</button>
+            <button id="backToMainFromMistakeBtn">返回主界面</button>
+        </div>
+
+        <div id="mistakeDrawView" style="display: none; margin-top: 24px;">
+            <div class="info-bar">
+                <span>错题剩余 <span id="mistakeRemain">0</span> 题</span>
+            </div>
+            <div class="question-block">
+                <div class="label">📝 错题题目</div>
+                <div class="question-text" id="mistakeQuestionDisplay"></div>
+            </div>
+            <div class="answer-block">
+                <div class="label">🔍 答案</div>
+                <div class="answer-text" id="mistakeAnswerDisplay">********</div>
+            </div>
+            <div class="button-group">
+                <button id="showMistakeAnswerBtn" class="primary">显示答案</button>
+                <button id="prevMistakeBtn">上一题</button>
+                <button id="nextMistakeBtn">下一题</button>
+                <button id="resetMistakeDrawInViewBtn">重置抽取</button>
+                <button id="removeThisMistakeBtn" class="warning">移除该错题</button>
+                <button id="backToMistakeMainBtn">返回错题本</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        // ---------- 全局数据 ----------
+        let rawLines = [];                      // 原始题库每行文本（含答案标记）
+        let questionList = [];                  // 解析后 { question: 原题不含答案部分, answer: 答案文本 }
+        let mistakeList = [];                    // 错题列表
+        let currentDrawRemaining = [];            // 当前抽取范围（存储索引）
+        let drawnHistory = [];                    // 已经抽取过的索引
+        let currentDrawIndex = -1;                // 当前展示的是drawnHistory里的第几个
+        let answerVisible = false;                 // 当前抽取界面是否显示答案
+        let mistakeDrawRemaining = [];             // 错题抽取剩余索引
+        let mistakeDrawnHistory = [];
+        let currentMistakeIndex = -1;
+        let mistakeAnswerVisible = false;
+
+        // UI元素
+        const mainPanel = document.getElementById('mainPanel');
+        const drawPanel = document.getElementById('drawPanel');
+        const mistakePanel = document.getElementById('mistakePanel');
+        const rangeSelectorView = document.getElementById('rangeSelectorView');
+        const drawQuestionView = document.getElementById('drawQuestionView');
+        const mistakeDrawView = document.getElementById('mistakeDrawView');
+
+        const totalCountRangeSpan = document.getElementById('totalCountRange');
+        const remainCounterSpan = document.getElementById('remainCounter');
+        const totalIndicatorSpan = document.getElementById('totalIndicator');
+        const questionDisplay = document.getElementById('questionDisplay');
+        const answerDisplay = document.getElementById('answerDisplay');
+        const answerHiddenTip = document.getElementById('answerHiddenTip');
+        const mainStatus = document.getElementById('mainStatus');
+        const mistakeTotalSpan = document.getElementById('mistakeTotal');
+
+        // 新增：范围输入框
+        const rangeStartInput = document.getElementById('rangeStart');
+        const rangeEndInput = document.getElementById('rangeEnd');
+
+        // 错本题内部元素
+        const mistakeQuestionDisplay = document.getElementById('mistakeQuestionDisplay');
+        const mistakeAnswerDisplay = document.getElementById('mistakeAnswerDisplay');
+        const mistakeRemainSpan = document.getElementById('mistakeRemain');
+
+        // 按钮
+        document.getElementById('gotoDrawRangeBtn').addEventListener('click', ()=>{
+            if(questionList.length === 0) { alert('请先加载题库'); return; }
+            // 重置范围输入框的值为合理的默认值（全部）
+            rangeStartInput.value = 1;
+            rangeEndInput.value = questionList.length;
+            // 更新显示
+            showPanel('draw');
+            rangeSelectorView.style.display = 'block';
+            drawQuestionView.style.display = 'none';
+            updateRangeInfo();
+        });
+        document.getElementById('gotoMistakePanelBtn').addEventListener('click', ()=>{
+            showPanel('mistake');
+            mistakeDrawView.style.display = 'none';
+            updateMistakeUI();
+        });
+        document.getElementById('reloadLibraryBtn').addEventListener('click', ()=>{
+            const url = document.getElementById('libraryUrlInput').value.trim();
+            if(url) loadFromUrl(url); else alert('请在输入框中填写链接');
+        });
+        document.getElementById('loadUrlBtn').addEventListener('click', ()=>{
+            const url = document.getElementById('libraryUrlInput').value.trim();
+            if(url) loadFromUrl(url); else alert('请输入链接');
+        });
+
+        document.getElementById('backToMainFromRangeBtn').addEventListener('click', ()=> showPanel('main'));
+        document.getElementById('backToMainFromDrawBtn').addEventListener('click', ()=> showPanel('main'));
+        document.getElementById('backToMainFromMistakeBtn').addEventListener('click', ()=> showPanel('main'));
+
+        // 开始抽取(范围界面点击) —— 现在使用自定义范围
+        document.getElementById('startRangeDrawBtn').addEventListener('click', ()=>{
+            if(questionList.length === 0) return alert('题库为空');
+            
+            // 获取范围输入
+            let start = parseInt(rangeStartInput.value);
+            let end = parseInt(rangeEndInput.value);
+            // 输入校验
+            if (isNaN(start) || start < 1) start = 1;
+            if (isNaN(end) || end > questionList.length) end = questionList.length;
+            if (start > end) {
+                alert('起始题号不能大于结束题号，将使用全部范围');
+                start = 1;
+                end = questionList.length;
+            }
+            // 转换为索引 (用户输入第1题对应索引0)
+            const startIdx = start - 1;
+            const endIdx = end - 1;
+            
+            // 生成剩余索引列表
+            currentDrawRemaining = [];
+            for (let i = startIdx; i <= endIdx; i++) {
+                currentDrawRemaining.push(i);
+            }
+            
+            if (currentDrawRemaining.length === 0) {
+                alert('该范围无有效题目');
+                return;
+            }
+
+            drawnHistory = [];
+            currentDrawIndex = -1;
+            answerVisible = false;
+            // 随机抽取一题作为开始
+            pickNewQuestionFromRemaining();
+            rangeSelectorView.style.display = 'none';
+            drawQuestionView.style.display = 'block';
+            updateDrawUI();
+        });
+
+        // 显示答案
+        document.getElementById('showAnswerBtn').addEventListener('click', ()=>{
+            if(currentDrawIndex >= 0 && drawnHistory.length > 0) {
+                answerVisible = true;
+                updateDrawUI();
+            } else alert('没有正在进行的题目');
+        });
+
+        document.getElementById('prevQuestionBtn').addEventListener('click', ()=>{
+            if(drawnHistory.length === 0) return alert('无抽取记录');
+            if(currentDrawIndex > 0) {
+                currentDrawIndex--;
+                answerVisible = false;
+                updateDrawUI();
+            } else alert('已经是第一题');
+        });
+        document.getElementById('nextQuestionBtn').addEventListener('click', ()=>{
+            if(drawnHistory.length === 0) return;
+            if(currentDrawIndex < drawnHistory.length - 1) {
+                currentDrawIndex++;
+                answerVisible = false;
+                updateDrawUI();
+            } else {
+                pickNewQuestionFromRemaining();
+            }
+        });
+
+        document.getElementById('resetDrawnBtn').addEventListener('click', ()=>{
+            if(confirm('重置已抽取，将清空抽取历史，但保留剩余范围。')) {
+                drawnHistory = [];
+                currentDrawIndex = -1;
+                answerVisible = false;
+                questionDisplay.innerText = '（点击下一题抽取）';
+                answerDisplay.innerText = '********';
+                answerHiddenTip.innerText = '（隐藏）';
+                updateRemainOnly();
+            }
+        });
+
+        document.getElementById('reselectRangeBtn').addEventListener('click', ()=>{
+            rangeSelectorView.style.display = 'block';
+            drawQuestionView.style.display = 'none';
+            // 刷新范围输入显示当前题库总数
+            rangeEndInput.value = questionList.length;
+            updateRangeInfo();
+        });
+
+        document.getElementById('addToMistakeBtn').addEventListener('click', ()=>{
+            if(currentDrawIndex >= 0 && drawnHistory.length > 0) {
+                const qIdx = drawnHistory[currentDrawIndex];
+                const questionObj = questionList[qIdx];
+                if(!mistakeList.some(item => item.question === questionObj.question && item.answer === questionObj.answer)) {
+                    mistakeList.push({...questionObj});
+                    updateMistakeTotal();
+                    alert('已加入错题本');
+                } else alert('已在错题本中');
+            } else alert('没有选中题目');
+        });
+
+        // 错题本内部功能 (保持不变，确保无误)
+        document.getElementById('startMistakeDrawBtn').addEventListener('click', ()=>{
+            if(mistakeList.length === 0) return alert('错题本为空');
+            mistakeDrawRemaining = mistakeList.map((_, idx) => idx);
+            mistakeDrawnHistory = [];
+            currentMistakeIndex = -1;
+            mistakeAnswerVisible = false;
+            pickNewMistakeFromRemaining();
+            mistakeDrawView.style.display = 'block';
+            updateMistakeDrawUI();
+        });
+        document.getElementById('viewAllMistakesBtn').addEventListener('click', ()=>{
+            if(mistakeList.length === 0) alert('暂无错题');
+            else alert('所有错题:\n' + mistakeList.map((q,i)=>`${i+1}. ${q.question} —— 答案: ${q.answer}`).join('\n'));
+        });
+        document.getElementById('resetMistakeDrawnBtn').addEventListener('click', ()=>{
+            mistakeDrawRemaining = mistakeList.map((_, idx) => idx);
+            mistakeDrawnHistory = [];
+            currentMistakeIndex = -1;
+            mistakeAnswerVisible = false;
+            updateMistakeTotal();
+            if(mistakeDrawView.style.display === 'block') {
+                mistakeQuestionDisplay.innerText = '重置完成，点击开始抽取错题';
+                mistakeAnswerDisplay.innerText = '********';
+            }
+        });
+        document.getElementById('backToMistakeMainBtn').addEventListener('click', ()=>{
+            mistakeDrawView.style.display = 'none';
+        });
+        document.getElementById('showMistakeAnswerBtn').addEventListener('click', ()=>{
+            if(currentMistakeIndex >= 0 && mistakeDrawnHistory.length > 0) {
+                mistakeAnswerVisible = true;
+                updateMistakeDrawUI();
+            } else alert('无错题');
+        });
+        document.getElementById('prevMistakeBtn').addEventListener('click', ()=>{
+            if(mistakeDrawnHistory.length === 0) return;
+            if(currentMistakeIndex > 0) {
+                currentMistakeIndex--;
+                mistakeAnswerVisible = false;
+                updateMistakeDrawUI();
+            } else alert('已是第一题');
+        });
+        document.getElementById('nextMistakeBtn').addEventListener('click', ()=>{
+            if(mistakeDrawnHistory.length === 0) return;
+            if(currentMistakeIndex < mistakeDrawnHistory.length - 1) {
+                currentMistakeIndex++;
+                mistakeAnswerVisible = false;
+                updateMistakeDrawUI();
+            } else {
+                pickNewMistakeFromRemaining();
+            }
+        });
+        document.getElementById('resetMistakeDrawInViewBtn').addEventListener('click', ()=>{
+            mistakeDrawRemaining = mistakeList.map((_, idx) => idx);
+            mistakeDrawnHistory = [];
+            currentMistakeIndex = -1;
+            mistakeAnswerVisible = false;
+            updateMistakeDrawUI();
+        });
+        document.getElementById('removeThisMistakeBtn').addEventListener('click', ()=>{
+            if(currentMistakeIndex >= 0 && mistakeDrawnHistory.length > 0) {
+                const mistakeIdx = mistakeDrawnHistory[currentMistakeIndex];
+                mistakeList.splice(mistakeIdx, 1);
+                mistakeDrawRemaining = mistakeList.map((_, idx) => idx);
+                mistakeDrawnHistory = [];
+                currentMistakeIndex = -1;
+                mistakeAnswerVisible = false;
+                updateMistakeTotal();
+                if(mistakeList.length === 0) {
+                    mistakeDrawView.style.display = 'none';
+                } else {
+                    pickNewMistakeFromRemaining();
+                }
+                updateMistakeDrawUI();
+            } else alert('没有选中错题');
+        });
+
+        // ------- 辅助函数 ---------
+        function showPanel(panel) {
+            mainPanel.classList.remove('active');
+            drawPanel.classList.remove('active');
+            mistakePanel.classList.remove('active');
+            if(panel === 'main') mainPanel.classList.add('active');
+            if(panel === 'draw') drawPanel.classList.add('active');
+            if(panel === 'mistake') mistakePanel.classList.add('active');
+        }
+
+        function updateRangeInfo() {
+            totalCountRangeSpan.innerText = questionList.length;
+            rangeEndInput.max = questionList.length;
+            rangeEndInput.value = questionList.length;
+        }
+
+        function updateRemainOnly() {
+            let remain = currentDrawRemaining.length;
+            remainCounterSpan.innerText = remain;
+            totalIndicatorSpan.innerText = questionList.length;
+        }
+
+        function updateDrawUI() {
+            if(drawnHistory.length > 0 && currentDrawIndex >= 0) {
+                const qIdx = drawnHistory[currentDrawIndex];
+                const q = questionList[qIdx];
+                questionDisplay.innerText = q.question;
+                if(answerVisible) {
+                    answerDisplay.innerText = q.answer;
+                    answerHiddenTip.innerText = '（显示）';
+                } else {
+                    answerDisplay.innerText = '********';
+                    answerHiddenTip.innerText = '（隐藏）';
+                }
+            } else {
+                questionDisplay.innerText = '暂无题目，请点击下一题抽取';
+                answerDisplay.innerText = '********';
+                answerHiddenTip.innerText = '（隐藏）';
+            }
+            updateRemainOnly();
+        }
+
+        function pickNewQuestionFromRemaining() {
+            if(currentDrawRemaining.length === 0) {
+                alert('当前范围已经没有题目了，请重置已抽取或重新选择范围');
+                return;
+            }
+            const randomIndex = Math.floor(Math.random() * currentDrawRemaining.length);
+            const selectedIdx = currentDrawRemaining[randomIndex];
+            currentDrawRemaining.splice(randomIndex, 1);
+            drawnHistory.push(selectedIdx);
+            currentDrawIndex = drawnHistory.length - 1;
+            answerVisible = false;
+            updateDrawUI();
+        }
+
+        function updateMistakeTotal() {
+            mistakeTotalSpan.innerText = mistakeList.length;
+        }
+
+        function pickNewMistakeFromRemaining() {
+            if(mistakeDrawRemaining.length === 0) {
+                alert('错题剩余已空，可重置抽取');
+                return;
+            }
+            const rand = Math.floor(Math.random() * mistakeDrawRemaining.length);
+            const selectedMistakeIdx = mistakeDrawRemaining[rand];
+            mistakeDrawRemaining.splice(rand, 1);
+            mistakeDrawnHistory.push(selectedMistakeIdx);
+            currentMistakeIndex = mistakeDrawnHistory.length - 1;
+            mistakeAnswerVisible = false;
+            updateMistakeDrawUI();
+        }
+
+        function updateMistakeDrawUI() {
+            if(mistakeDrawnHistory.length > 0 && currentMistakeIndex >= 0) {
+                const mistakeIdx = mistakeDrawnHistory[currentMistakeIndex];
+                const q = mistakeList[mistakeIdx];
+                mistakeQuestionDisplay.innerText = q.question;
+                mistakeAnswerDisplay.innerText = mistakeAnswerVisible ? q.answer : '********';
+            } else {
+                mistakeQuestionDisplay.innerText = '无错题';
+                mistakeAnswerDisplay.innerText = '********';
+            }
+            mistakeRemainSpan.innerText = mistakeDrawRemaining.length;
+        }
+
+        function updateMistakeUI() {
+            mistakeTotalSpan.innerText = mistakeList.length;
+        }
+
+        // 解析题库
+        function parseQuestionsFromLines(lines) {
+            const qlist = [];
+            for(let line of lines) {
+                line = line.trim();
+                if(line === '') continue;
+                const ansIndex = line.lastIndexOf('答案：');
+                if(ansIndex !== -1) {
+                    const questionPart = line.substring(0, ansIndex).trim();
+                    let answerPart = line.substring(ansIndex + 3).trim();
+                    qlist.push({ question: questionPart, answer: answerPart });
+                } else {
+                    qlist.push({ question: line, answer: '' });
+                }
+            }
+            return qlist;
+        }
+
+        async function loadFromUrl(url) {
+            try {
+                const response = await fetch(url);
+                if(!response.ok) throw new Error('加载失败');
+                const text = await response.text();
+                rawLines = text.split(/\r?\n/);
+                questionList = parseQuestionsFromLines(rawLines);
+                mainStatus.innerText = `📖 题库已加载：${questionList.length}题`;
+                // 重置所有抽取状态
+                currentDrawRemaining = questionList.map((_,idx) => idx);
+                drawnHistory = []; currentDrawIndex = -1;
+                mistakeList = []; updateMistakeTotal();
+                mistakeDrawRemaining = []; mistakeDrawnHistory = [];
+                // 更新范围输入
+                rangeEndInput.max = questionList.length;
+                rangeEndInput.value = questionList.length;
+                alert(`成功加载 ${questionList.length} 道题目`);
+            } catch (e) {
+                alert('加载失败，请检查链接或跨域。您可以手动复制题库格式到控制台。');
+                console.error(e);
+            }
+        }
+
+        // 自动加载默认链接（如果存在且题库为空）
+        window.addEventListener('load', ()=>{
+            const defaultUrl = document.getElementById('libraryUrlInput').value.trim();
+            if(defaultUrl) {
+                loadFromUrl(defaultUrl).catch(()=>{});
+            }
+        });
+    })();
+</script>
+</body>
+</html>
