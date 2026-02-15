@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>智能抽题 · 自定义范围</title>
+    <title>智能抽题 · 自定义范围 · 起止符格式</title>
     <style>
         * {
             box-sizing: border-box;
@@ -624,19 +624,39 @@
             mistakeTotalSpan.innerText = mistakeList.length;
         }
 
-        // 解析题库
+        // 解析题库 —— 修改为识别 begining......ending 作为一题，且答案在 ending 前
         function parseQuestionsFromLines(lines) {
+            const fullText = lines.join('\n');  // 先合并，方便跨行匹配
+            const regex = /begining(.*?)ending/gs;  // 非贪婪匹配，跨越换行
             const qlist = [];
-            for(let line of lines) {
-                line = line.trim();
-                if(line === '') continue;
-                const ansIndex = line.lastIndexOf('答案：');
-                if(ansIndex !== -1) {
-                    const questionPart = line.substring(0, ansIndex).trim();
-                    let answerPart = line.substring(ansIndex + 3).trim();
+            let match;
+            while ((match = regex.exec(fullText)) !== null) {
+                let block = match[1].trim();  // 获取 begining 和 ending 之间的内容
+                // 在 block 中寻找 "答案：" 分割题目和答案
+                const ansIndex = block.lastIndexOf('答案：');
+                if (ansIndex !== -1) {
+                    const questionPart = block.substring(0, ansIndex).trim();
+                    let answerPart = block.substring(ansIndex + 3).trim();
                     qlist.push({ question: questionPart, answer: answerPart });
                 } else {
-                    qlist.push({ question: line, answer: '' });
+                    // 如果没有“答案：”，将整个 block 当作题目，答案留空
+                    qlist.push({ question: block, answer: '' });
+                }
+            }
+            // 如果没有任何匹配（可能是旧格式或纯文本），回退到按行分割并保留原有逻辑（兼容）
+            if (qlist.length === 0) {
+                // 退化为逐行解析（原逻辑）
+                for(let line of lines) {
+                    line = line.trim();
+                    if(line === '') continue;
+                    const ansIndex = line.lastIndexOf('答案：');
+                    if(ansIndex !== -1) {
+                        const questionPart = line.substring(0, ansIndex).trim();
+                        let answerPart = line.substring(ansIndex + 3).trim();
+                        qlist.push({ question: questionPart, answer: answerPart });
+                    } else {
+                        qlist.push({ question: line, answer: '' });
+                    }
                 }
             }
             return qlist;
